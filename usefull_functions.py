@@ -73,3 +73,13 @@ def calc_FCcs_from_FPcs(coords_inFPcs, cell_length):
 
 def calc_rect_xy_from_FCcs(coords_inFCcs, cell_length):
     return point_multiply(coords_inFCcs, operand=cell_length)
+
+
+def invert_colour(colour):
+    if isinstance(colour, (tuple, str)):
+        pygame_colour = pygame.color.Color(colour)
+    else:
+        pygame_colour = colour
+    for i in range(3):
+        pygame_colour[i] = 255 - pygame_colour[i]
+    return pygame_colour

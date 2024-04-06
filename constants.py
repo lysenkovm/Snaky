@@ -69,13 +69,17 @@ BUTTON_FONT_PARAMETERS = {'filepath': FONTS_FOLDER / r'SerpensRegular-7MGE.ttf',
                           'colour': 'yellow'}
 
 # focus
-BUTTON_FOCUS_PARAMETERS = {'border': 10,
-                           'indent': BUTTON_SURFACE_PARAMETERS['size'][1] // 2}
+BUTTON_FOCUS_PARAMETERS = {'focus_thickness': 10,
+                           'focus_colour': 'red'}
+
 # sounds
 BUTTON_SOUNDS_PARAMETERS = {'click_filepath': SOUNDS_FOLDER /
                            r'mixkit-arcade-game-jump-coin-216.wav',
                            'motion_filepath': SOUNDS_FOLDER /
                            r'mixkit-camera-shutter-click-1133.wav'}
+
+# MENU
+BUTTONS_INDENT_PERCENT = 50
 
 # GAMEPLAY
 GAMEPLAY_SCORE_INTERFACE_PART_PERCENT = 25
@@ -168,6 +172,7 @@ class Direction:
         return f'Direction({self.name.upper()} == {self.points})'
 
 
+# Resolutions[i] == Resolutions(i) ->
 class Resolutions:
 
     RESOLUTIONS_CELL_LENGTH = {(1024, 768): (16, 32), 
@@ -195,14 +200,14 @@ class Resolutions:
 class Resolution:
     
     def __init__(self, resolution, cell_lengths, index):
-        self._xy = self._x, self._y = resolution
+        self._x, self._y = resolution
         self.cell_lengths = cell_lengths
-        self.index = index
+        self.index = index  # индекс в списке разрешений
 
     # Field POINTS Coords
     @property
     def xy(self):
-        return self._xy
+        return FPcs(self._x, self._y)
     
     @property
     def x(self):
@@ -243,6 +248,8 @@ class FPcs:
     def __sub__(self, other):
         if isinstance(other, self.__class__):
             return self.__class__(self.x - other.x, self.y - other.y)
+        elif isinstance(other, (tuple, list)):
+            return self.__class__(self.x - other[0], self.y - other[1])
         elif isinstance(other, int):
             return self.__class__(self.x - other, self.y - other)
         
@@ -252,6 +259,8 @@ class FPcs:
     def __add__(self, other):
         if isinstance(other, self.__class__):
             return self.__class__(self.x + other.x, self.y + other.y)
+        elif isinstance(other, (tuple, list)):
+            return self.__class__(self.x + other[0], self.y + other[1])
         elif isinstance(other, int):
             return self.__class__(self.x + other, self.y + other)
     
@@ -298,6 +307,32 @@ class FPcs:
     @property
     def xy(self):
         return (self.x, self.y)
+    
+    def copy(self):
+        return self.__class__(self.xy)
         
 
 RESOLUTIONS = Resolutions()
+
+
+class Block(pygame.sprite.Sprite):
+    def __init__(self, image, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.group = pygame.sprite.Group()
+        
+    def draw(self):
+        self.group.draw(self.image)
+    
+    def add(self, sprite):
+        self.group.add(sprite)
+        
+    def copy(self):
+        image = self.image.copy()
+        rect = self.rect.copy()
+        group = self.group.copy()
+        block = self.__class__(image)
+        block.rect = rect
+        block.group = group
+        return block

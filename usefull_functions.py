@@ -83,3 +83,6 @@ def invert_colour(colour):
     for i in range(3):
         pygame_colour[i] = 255 - pygame_colour[i]
     return pygame_colour
+
+def create_surface_with_drawing(surface_inFPcs, *args, **kwargs):
+    

@@ -26,7 +26,7 @@ class GamePlay(pygame.sprite.Group):
         super().__init__()
         self.game_app = game_app
         self.resolution = self.game_app.resolution
-        self.cell_length = self.game_app.cell_size
+        self.cell_length = self.game_app.cell_length
         self.screen = self.game_app.screen
         # keys:
             # 'score_size':

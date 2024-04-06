@@ -1,65 +1,64 @@
-class FPcs:
-    def __init__(self, *xy):
-        if len(xy) == 1:
-            self._x, self._y = xy[0]
-        elif len(xy) == 2:
-            self._x, self._y = xy
-        
-    def __sub__(self, other):
-        if isinstance(other, self.__class__):
-            return self.__class__(self.x - other.x, self.y - other.y)
-        elif isinstance(other, int):
-            return self.__class__(self.x - other, self.y - other)
-        
-    def __isub__(self, other):
-        return self.__sub__(other)
-    
-    def __add__(self, other):
-        if isinstance(other, self.__class__):
-            return self.__class__(self.x + other.x, self.y + other.y)
-        elif isinstance(other, int):
-            return self.__class__(self.x + other, self.y + other)
-    
-    def __iadd__(self, other):
-        return self.__add__(other)
-    
-    def __mul__(self, value):
-        return self.__class__(self.x * value, self.y * value)
-    
-    def __imul__(self, value):
-        return self.__mul__(value)
-    
-    def __floordiv__(self, value):
-        return self.__class__(self.x // value, self.y // value)
-    
-    def __ifloordiv__(self, value):
-        return self.__floordiv__(value)
-    
-    def __truediv__(self, value):
-        return self.__floordiv__(value)
+import constants
+import pygame
 
-    def __itruediv__(self, value):
-        return self.__truediv__(value)
 
-    def __str__(self):
-        return f'FPcs{self.xy}'
+class Block(pygame.sprite.Sprite):
+    def __init__(self, image, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.group = pygame.sprite.Group()
+        
+    def draw(self):
+        self.group.draw(self.image)
     
-    @property
-    def x(self):
-        return self._x
-    
-    @x.setter
-    def x(self, new_x):
-        self._x = new_x
-    
-    @property
-    def y(self):
-        return self._y
-    
-    @y.setter
-    def y(self, new_y):
-        self._y = new_y
-    
-    @property
-    def xy(self):
-        return (self.x, self.y)
+    def add(self, sprite):
+        self.group.add(sprite)
+        
+    def copy(self):
+        image = self.image.copy()
+        rect = self.rect.copy()
+        group = self.group.copy()
+        block = self.__class__(image)
+        block.rect = rect
+        block.group = group
+        return block
+
+
+pygame.init()
+running = True
+screen = pygame.display.set_mode((640, 480))
+
+block3 = Block(pygame.Surface((50, 50)))
+block3.image.fill('orange')
+block3.rect.topleft = (25, 25)
+
+block2 = Block(pygame.Surface((100, 100)))
+block2.image.fill('green')
+block2.rect.topleft = (50, 50)
+block2.group.add(block3)
+
+block1 = Block(pygame.Surface((200, 200)))
+block1.image.fill('white')
+block1.rect.topleft = (100, 100)
+block1.group.add(block2)
+block1.draw()
+
+block11 = block1.copy()
+block11.rect.topleft = (300, 200)
+block11.group.sprites()[0]
+
+
+
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            break
+    screen.fill('yellow')
+    screen.blit(block1.image, block1.rect.topleft)
+    screen.blit(block11.image, block11.rect.topleft)
+    pygame.display.flip()
+pygame.quit()
+

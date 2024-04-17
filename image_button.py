@@ -8,7 +8,7 @@ class ImageButton(pygame.sprite.Sprite):  # coords removed
     # kwargs:   name, action, size, text, font_parameters: dict, fill, border, form,
     #           image_filepath, sound_motion_filepath, sound_click_filepath
     # name
-    # +action_parameters:   +function_or_method, args, kwargs
+    # +action_parameters:   +callable, args, kwargs
     # surface_parameters:   size, form, image_filepath
     # colours:  fill, border
     # sounds:   motion_filepath, click_filepath
@@ -19,13 +19,14 @@ class ImageButton(pygame.sprite.Sprite):  # coords removed
         self.name = kwargs.get('name', 'unnamed')
         
         # +action_parameters:
-            # +function_or_method
+            # +callable
             # args
             # kwargs
         action_parameters = kwargs.get('action_parameters')
-        self.action = action_parameters.get('function_or_method')
+        self.action = action_parameters.get('callable')
         self.action_args = action_parameters.get('args', ())
         self.action_kwargs = action_parameters.get('kwargs', {})
+        self.action_callable_args = action_parameters.get('callable_args', ())
         
         # +label
             # +text
@@ -44,7 +45,7 @@ class ImageButton(pygame.sprite.Sprite):  # coords removed
             # image_filepath
         surface_parameters = kwargs.get(
             'surface_parameters', constants.BUTTON_SURFACE_PARAMETERS)
-        self.size = constants.FPcs(surface_parameters.get('size'))
+        self.size = constants.Point(surface_parameters.get('size'))
         self.thickness_percent = surface_parameters.get('thickness_percent')
         self.form = surface_parameters.get('form')
         self.image_filepath = surface_parameters.get('image_filepath', None)
@@ -74,7 +75,7 @@ class ImageButton(pygame.sprite.Sprite):  # coords removed
         self.images = self.create_images()
         # OTHER parameters
         self.status = {'active': True, 'focused': False, 'pushed': False}
-        self._xy = constants.FPcs(0, 0)
+        self._xy = constants.Point(0, 0)
         self.delayed_events = {}
         # @properties:
             # image
@@ -204,16 +205,18 @@ class ImageButton(pygame.sprite.Sprite):  # coords removed
             self.delayed_events['BUTTON_UP'] = {
                 'delay': 150,
                 'start_time': pygame.time.get_ticks(),
-                'function_or_method': partial(self.push, status=False)}
+                'callable': partial(self.push, status=False)}
             # нужно, чтобы выполнить действие только после анимации
             self.delayed_events['BUTTON_PUSH'] = {
                 'delay': 200,
                 'start_time': pygame.time.get_ticks(),
-                'function_or_method': self.make_action}
+                'callable': self.make_action}
     
     def make_action(self):
         if self.action:
-            self.action(*self.action_args, **self.action_kwargs)
+            self.action(*self.action_args,
+                        *[callable() for callable in self.action_callable_args],
+                        **self.action_kwargs)
     
     def focus(self, status):
         self.status['focused'] = status
@@ -229,4 +232,4 @@ class ImageButton(pygame.sprite.Sprite):  # coords removed
                 start_time = self.delayed_events[event_name]['start_time']
                 delay = self.delayed_events[event_name]['delay']
                 if current_time - start_time >= delay:
-                    self.delayed_events.pop(event_name)['function_or_method']()
+                    self.delayed_events.pop(event_name)['callable']()

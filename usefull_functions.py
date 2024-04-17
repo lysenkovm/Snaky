@@ -48,9 +48,7 @@ def set_colorkey(surface, colorkey=None):
 
 def get_circle_image(colour, cell_length):
     circle_image = pygame.Surface((cell_length, cell_length))
-    radius = cell_length // 2
-    center_point = (radius + bool(cell_length % 2), ) * 2
-    pygame.draw.circle(circle_image, colour, center_point, radius)
+    pygame.draw.ellipse(circle_image, colour, circle_image.get_rect())
     return circle_image
 
 
@@ -84,5 +82,5 @@ def invert_colour(colour):
         pygame_colour[i] = 255 - pygame_colour[i]
     return pygame_colour
 
-def create_surface_with_drawing(surface_inFPcs, *args, **kwargs):
-    
+def reverse_dict(dictionary):
+    return dict(map(reversed, dictionary.items()))

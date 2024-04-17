@@ -1,8 +1,9 @@
-from pathlib import Path
 import pygame
+from functools import partial
 import constants
 import image_button as image_button_module
-import gameplay_gameplay
+from gameplay_modules import gameplay
+# import gameplay_modules.gameplay as gameplay
 #test<
 import sys
 file = open('./debugging.txt', 'wt')
@@ -33,9 +34,9 @@ class GameApp:
     def __init__(self, resolution):
         pygame.init()
         self.resolution = resolution  # object
-        self.cell_length = self.resolution.cell_length(0)
+        self.cell_length = self.resolution.cell_lengths[0]
         # self.developer_events_counter = pygame.USEREVENT
-        # self.processes_stack = []
+        self.processes_stack = []
         self.screen = pygame.display.set_mode(self.resolution.xy.xy)
         self.running = True          # Программа работает
         self.clock = pygame.time.Clock()
@@ -58,11 +59,13 @@ class GameApp:
         #test>
         pygame.quit()
     
+    # Используется для начала игры из меню
     def set_current_process(self, next_process, kill_previous=False):
         if not kill_previous:
             self.processes_stack.append(self.current_process)
         self.current_process = next_process
     
+    # Используется для смены разрешения из меню
     def change_resolution(self, resolution):
         self.resolution = resolution
         self.cell_length = self.resolution.cell_length(0)
@@ -73,6 +76,7 @@ class GameApp:
         self.current_process.set_current_menu(ChangeResolutionMenu(
             self.current_process, settings_menu))
     
+    # Используется для смены длины ячейки
     def set_cell_size(self, cell_length):
         self.cell_length = cell_length
         self.current_process = AppMenu(self)
@@ -81,6 +85,7 @@ class GameApp:
         self.current_process.set_current_menu(ChangeCellSizeMenu(
             self.current_process, settings_menu))
     
+    # Используется для выхода из приложения из меню
     def quit_app(self):
         self.running = False
         
@@ -88,14 +93,15 @@ class GameApp:
     # AppMenu
         # Menu
 # Управление Меню Приложения
-class AppMenu:
+class AppMenu:  # GameApp.current_process
     def __init__(self, game_app):
         self.game_app = game_app
         self.background_image = self.load_background_image(
             constants.MENU_BACKGROUND_IMAGE_PATH)
         self.current_menu = MainMenu(self, self)
 
-    # Инициализация
+    # ИНИЦИАЛИЗАЦИЯ
+    # Загрузка изображения фона Меню
     def load_background_image(self, filepath):
         background_image = pygame.image.load(filepath)
         width, height = background_image.get_size()
@@ -108,9 +114,8 @@ class AppMenu:
                 0, 0, *self.game_app.resolution.xy.xy)
 
     # Рисование
-    def draw(self):
+    def draw(self):  # GameApp.main_loop()
         self.game_app.screen.blit(self.background_image, (0, 0))
-        current_menu = self.current_menu
         self.current_menu.draw(self.game_app.screen)
     
     # События
@@ -132,6 +137,8 @@ class Menu(pygame.sprite.Group):
         self.focus_thickness = focus_parameters['focus_thickness']
         self.focus_colour = focus_parameters['focus_colour']
         self.buttons_indent_percent = constants.BUTTONS_INDENT_PERCENT
+        # @properties
+        # buttons_group_y
     
     @property
     def buttons_group_y(self):
@@ -145,7 +152,7 @@ class Menu(pygame.sprite.Group):
         return group_y
     
     def set_button_rect(self, button, button_order_i):
-        center_point = constants.FPcs(
+        center_point = constants.Point(
             self.app_menu.game_app.screen.get_rect().center)
         # Topleft кнопки
         button.xy.x = center_point.x - button.size.x // 2
@@ -153,13 +160,14 @@ class Menu(pygame.sprite.Group):
             button.size.y + button.button_indent)
     
     def draw(self, surface):
-        self.update()
+        # Обновляет спрайты (кнопки)
+        self.update()   # from super-class.update()
         for button in self.sprites():
             if button.status['focused']:
-                focus_wh = button.size.copy()
+                focus_wh = button.size.copy()   # Point
                 focus_wh.x += 2 * self.focus_thickness
                 focus_wh.y += self.focus_thickness
-                focus_xy = constants.FPcs(button.rect.topleft)
+                focus_xy = constants.Point(button.rect.topleft)
                 focus_xy.x -= self.focus_thickness
                 focus_xy.y += button.thickness_shift - self.focus_thickness
                 pygame.draw.rect(surface, self.focus_colour,
@@ -187,8 +195,8 @@ class MainMenu(Menu):
                 self,
                 name='button_play',
                 action_parameters={
-                    'function_or_method': self.app_menu.game_app.set_current_process,
-                    'args': (gameplay_gameplay.GamePlay(self.app_menu.game_app), )},
+                    'callable': self.app_menu.game_app.set_current_process,
+                    'callable_args': (partial(gameplay.GamePlay, self.app_menu.game_app), )},
                 label_parameters={'text': 'P L A Y'},
                 sounds_parameters={
                     'click_filepath': constants.SOUNDS_FOLDER / r'mixkit-game-click-1114.wav'}))
@@ -197,14 +205,14 @@ class MainMenu(Menu):
                 self,
                 name='button_settings',
                 action_parameters={
-                    'function_or_method': self.app_menu.set_current_menu,
+                    'callable': self.app_menu.set_current_menu,
                     'args': (SettingsMenu(self.app_menu, self), )},
                 label_parameters={'text': 'S E T T I N G S'}))
         self.add(
             image_button_module.ImageButton(
                 self,
                 name='button_quit',
-                action_parameters={'function_or_method': self.app_menu.game_app.quit_app},
+                action_parameters={'callable': self.app_menu.game_app.quit_app},
                 label_parameters={'text': 'Q U I T'}))
         for order_i, button in enumerate(self.sprites()):
             self.set_button_rect(button, order_i)
@@ -217,14 +225,14 @@ class SettingsMenu(Menu):
             image_button_module.ImageButton(
                 self,
                 name='button_resolution',
-                action_parameters={'function_or_method': self.app_menu.set_current_menu,
+                action_parameters={'callable': self.app_menu.set_current_menu,
                                    'args': (ChangeResolutionMenu(self.app_menu, self),)},
                 label_parameters={'text': 'R E S O L U T I O N'}))
         self.add(
             image_button_module.ImageButton(
                 self,
                 name='button_cell_size',
-                action_parameters={'function_or_method': self.app_menu.set_current_menu,
+                action_parameters={'callable': self.app_menu.set_current_menu,
                                    'args': (ChangeCellSizeMenu(self.app_menu, self),)},
                 label_parameters={'text': 'C E L L  S I Z E'}))
         # Изменить на отключение, включение звука
@@ -232,14 +240,14 @@ class SettingsMenu(Menu):
             image_button_module.ImageButton(
                 self,
                 name='button_sound_configure',
-                action_parameters={'function_or_method': min,
+                action_parameters={'callable': min,
                                    'args': (5, 6, )},
                 label_parameters={'text': 'S O U N D'}))
         self.add(
             image_button_module.ImageButton(
                 self,
                 name='button_back',
-                action_parameters={'function_or_method': self.app_menu.set_current_menu,
+                action_parameters={'callable': self.app_menu.set_current_menu,
                                    'args': (self.parent, )},
                 label_parameters={'text': 'B A C K'}))
         for order_i, button in enumerate(self.sprites()):
@@ -255,7 +263,7 @@ class ChangeResolutionMenu(Menu):
                     self,
                     name=f'set_resolution_{resolution.index}',
                     action_parameters={
-                        'function_or_method': self.app_menu.game_app.change_resolution,
+                        'callable': self.app_menu.game_app.change_resolution,
                         'args': (resolution, )},
                     label_parameters={'text': resolution.__str__()}))
         self.add(
@@ -263,7 +271,7 @@ class ChangeResolutionMenu(Menu):
                 self,
                 name='button_back',
                 action_parameters={
-                    'function_or_method': self.app_menu.set_current_menu,
+                    'callable': self.app_menu.set_current_menu,
                     'args': (self.parent, )},
                 label_parameters={'text': 'B A C K'}))
         for order_i, button in enumerate(self.sprites()):
@@ -279,7 +287,7 @@ class ChangeCellSizeMenu(Menu):
                 image_button_module.ImageButton(
                     self,
                     name=f'set_cell_size_{i}',
-                    action_parameters={'function_or_method': self.app_menu.game_app.set_cell_size,
+                    action_parameters={'callable': self.app_menu.game_app.set_cell_size,
                                        'args': (cell_length,)},
                     label_parameters={'text': f'{cell_length} x {cell_length}'}))
         self.add(
@@ -287,7 +295,7 @@ class ChangeCellSizeMenu(Menu):
                 self,
                 name='button_back',
                 action_parameters={
-                    'function_or_method': self.app_menu.set_current_menu,
+                    'callable': self.app_menu.set_current_menu,
                     'args': (self.parent, )},
                 label_parameters={'text': 'B A C K'}))
         for order_i, button in enumerate(self.sprites()):

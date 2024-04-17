@@ -1,64 +1,26 @@
-import constants
 import pygame
+import constants
+import usefull_functions
 
 
-class Block(pygame.sprite.Sprite):
-    def __init__(self, image, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.image = image
-        self.rect = self.image.get_rect()
-        self.group = pygame.sprite.Group()
-        
-    def draw(self):
-        self.group.draw(self.image)
-    
-    def add(self, sprite):
-        self.group.add(sprite)
-        
-    def copy(self):
-        image = self.image.copy()
-        rect = self.rect.copy()
-        group = self.group.copy()
-        block = self.__class__(image)
-        block.rect = rect
-        block.group = group
-        return block
-
-
+resolution = constants.RESOLUTIONS[1]
+# rects = calc_surface_parts_rects()
 pygame.init()
+FPS = 50
+clock = pygame.time.Clock()
 running = True
-screen = pygame.display.set_mode((640, 480))
-
-block3 = Block(pygame.Surface((50, 50)))
-block3.image.fill('orange')
-block3.rect.topleft = (25, 25)
-
-block2 = Block(pygame.Surface((100, 100)))
-block2.image.fill('green')
-block2.rect.topleft = (50, 50)
-block2.group.add(block3)
-
-block1 = Block(pygame.Surface((200, 200)))
-block1.image.fill('white')
-block1.rect.topleft = (100, 100)
-block1.group.add(block2)
-block1.draw()
-
-block11 = block1.copy()
-block11.rect.topleft = (300, 200)
-block11.group.sprites()[0]
-
-
-
-
+screen = pygame.display.set_mode(resolution.xy.xy)
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
             break
-    screen.fill('yellow')
-    screen.blit(block1.image, block1.rect.topleft)
-    screen.blit(block11.image, block11.rect.topleft)
+    screen.fill('black')
+    image = pygame.Surface((1, 32))
+    thickness_rect = pygame.Rect(0, )
+    
+    screen.blit(image, rect)
     pygame.display.flip()
+    clock.tick(FPS)
+    
 pygame.quit()
-

@@ -46,15 +46,16 @@ class GamePlay(pygame.sprite.Group):
     
     def calc_surface_parts_rects(self):
         score_rect = pygame.Rect(0, 0, *self.resolution.xy.xy)
-        score_rect.w = (self.resolution.xy.x *
-                        constants.SCORE_PERCENT_OF_RESOLUTION // 100)
+        score_rect.w = (self.resolution.xy.to_FCcs(self.cell_length) *
+                        constants.SCORE_PERCENT_OF_RESOLUTION // 100).to_FPcs(
+                            self.cell_length).x
         field_rect = pygame.Rect(score_rect.w, 0, *self.resolution.xy.xy)
         field_rect.w -= score_rect.w
         return {'score': score_rect,
                 'field': field_rect}
  
     def draw(self):     # GameApp.current_process.draw()
-        self.update()               # сначала обновление score и field
+        super().update()               # сначала обновление score и field
         super().draw(self.screen)   # затем их прорисовка
     
     def event_handler(self, event):
@@ -68,7 +69,8 @@ class GamePlay(pygame.sprite.Group):
             # Вызываем напрямую метод SnakeHead.update(). Если бы нужно было
              # вызвать еще какие-то действия, то нужно было бы прогнать через
              # элементы иерархии структуры программы.
-            self.snake_of_player.snake_head.move()
+            self.snake_of_player.move()
+            # self.snake_of_player.snake_head.move()
         elif event.type in (constants.FOOD_PIECE_NEED_EVENT,
                             constants.FOOD_PIECE_EATEN_EVENT):
             self.surface_parts['field'].event_handler(event)
@@ -87,12 +89,18 @@ class ScoreInterface(pygame.sprite.Sprite):
         super().update()
         self.image.fill(constants.SCORE_FILL_COLOUR)
         
+        
 # Игровое Поле
 class Field(pygame.sprite.Sprite):
     def __init__(self, game_play, field_rect):
         super().__init__()
         self.game_play = game_play
+        # self.rect = field_rect
         self.rect = field_rect
+        # self.rect.left += self.cell_length
+        # self.rect.top += self.cell_length
+        # self.rect.w -= 2 * self.cell_length
+        # self.rect.h -= 2 * self.cell_length
         self.image = pygame.Surface(self.rect.size)
         # Изменения и генерация новых элементов Snake и Food только на update
         self.field_parts = {'snake_of_player': snake_of_player.Snake(self),
@@ -127,9 +135,10 @@ class Field(pygame.sprite.Sprite):
             field_part.draw(self.image)
         # Проверка на столкновение Головы с Едой и генерация события съедания
         if collisions := pygame.sprite.groupcollide(
-                self.field_parts['snake_of_player'],
+                [self.field_parts['snake_of_player'].snake_head],
                 self.field_parts['food'], False, True):
-            pygame.event.post(constants.FOOD_PIECE_EATEN_EVENT)
+            pygame.event.post(pygame.event.Event(
+                constants.FOOD_PIECE_EATEN_EVENT))
     
     def action_on_food_collision(self, collisions):
         self.field_parts['snake_of_player'].change_parameters_on_eating(100, 1)
@@ -141,3 +150,13 @@ class Field(pygame.sprite.Sprite):
         elif event.type == constants.FOOD_PIECE_EATEN_EVENT:
             self.field_parts['food'].event_handler(event)
             self.field_parts['snake_of_player'].event_handler(event)
+
+
+# class Border(pygame.sprite.Sprite):
+#     def __init__(self, field, direction):
+#         self.field = field
+#         self.rect = pygame.Rect(
+#             *(direction.side_factors[0] * )
+#             )
+        
+#     def 

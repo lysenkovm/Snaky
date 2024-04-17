@@ -29,11 +29,9 @@ class Snake(pygame.sprite.Group):
         self.field = field
         self.direction = constants.Direction(random.choice(constants.DIRS_NAMES))
         # self.direction = constants.UP
-        # Скорость делить на FPS только во время прорисовки!!!!!!!!!!
-        # snake_parameters
+        # SNAKE_PARAMETERS:
             # 'speed'
         self.speed = snake_parameters.get('speed', constants.SNAKE_SPEED_MIN)
-        
         # BODY_PARAMETERS:
             # 'length_inFCcs'
             # 'snake_thickness_percent'
@@ -45,9 +43,7 @@ class Snake(pygame.sprite.Group):
         # Части Змеи
         # self.body_parts_images: 'on_bend', LEFT, RIGHT, UP, DOWN
         self.body_parts_images = self.create_body_parts_images()
-
         # СОЗДАНИЕ ГОЛОВЫ (длина Змеи должна быть уже задана)
-        # Здесь!!!
         self.snake_head = SnakeHead(self, head_parameters)
         # СОЗДАНИЕ ТЕЛА
         self.snake_body_lines = []
@@ -76,7 +72,7 @@ class Snake(pygame.sprite.Group):
 
     @property
     def field_size_inFPcs(self):
-        return self.field.field_size_inFPcs
+        return self.field.field_size_inFPcs.copy()
     
     @property
     def cell_length(self):
@@ -86,16 +82,11 @@ class Snake(pygame.sprite.Group):
     def update(self):
         self.snake_head.update()
         # Обновление - в обратном порядке
-        for line in self.snake_body_lines[::-1]:
-            line.update()
-        self.update_body_bends()
 
     def draw(self, surface):
         for bend in self.body_bends:
             surface.blit(bend.image, bend.rect)
-        # print(self.snake_body_lines)
         for line in self.snake_body_lines:
-            # print(line.image, line.rect)
             surface.blit(line.image, line.rect)
         surface.blit(self.snake_head.image, self.snake_head.rect)
     
@@ -105,23 +96,25 @@ class Snake(pygame.sprite.Group):
         line_vertical_image = pygame.Surface((1, self.cell_length))
         thickness_vertical_rect = pygame.Rect(
             0, self.indent_before_thickness, 1, self.body_thickness)
-        pygame.draw.line(
-            line_vertical_image, self.body_colour,
-            thickness_vertical_rect.topleft, thickness_vertical_rect.size)
+        pygame.draw.rect(line_vertical_image, self.body_colour,
+                         thickness_vertical_rect)
         usefull_functions.set_colorkey(line_vertical_image)
         # Горизонтальная Линия
         line_horizontal_image = pygame.Surface((self.cell_length, 1))
         thickness_horizontal_rect = pygame.Rect(
             self.indent_before_thickness, 0, self.body_thickness, 1)
-        pygame.draw.line(
-            line_horizontal_image, self.body_colour,
-            thickness_horizontal_rect.topleft, thickness_horizontal_rect.size)
+        pygame.draw.rect(line_horizontal_image, self.body_colour,
+                         thickness_horizontal_rect)
         usefull_functions.set_colorkey(line_horizontal_image)
         # Круг на сгибе
         on_bend_image = pygame.Surface((self.cell_length,
                                         self.cell_length))
+        on_bend_thickness_rect = pygame.Rect(self.indent_before_thickness,
+                                             self.indent_before_thickness,
+                                             self.body_thickness,
+                                             self.body_thickness)
         pygame.draw.ellipse(on_bend_image, self.body_colour,
-                            on_bend_image.get_rect())
+                            on_bend_thickness_rect)
         usefull_functions.set_colorkey(on_bend_image)
         # Полный словарь изображений
         body_parts_images = {constants.LEFT: line_vertical_image,
@@ -133,14 +126,15 @@ class Snake(pygame.sprite.Group):
     
     # СОЗДАНИЕ ТЕЛА ЗМЕИ
     def growing_body(self, cells_quantity_inFCcs=1):
+        # Определить координаты центральной линии (на направлению)
         # Линии создаются в порядке возрастания отдаления от Головы
         if not self.snake_body_lines:           # Если список Линий пуст,
             next_line_i_from_head_center = 0    # Следующий номер Линии - 0.
-            previous_direction = self.snake_head.direction.copy()  # Направление предыдущего объекта - направлени Головы.
+            previous_direction = self.snake_head.direction  # Направление предыдущего объекта - направлени Головы.
         else:
             next_line_i_from_head_center = self.snake_body_lines[  # Следующий номер Линии -
                 -1].line_i_from_head_center + 1     # номер последней Линии в списке (наибольший) + 1
-            previous_direction = self.snake_body_lines[-1].direction.copy()  # Направление предыдущего объекта - направление предыдущей Линии
+            previous_direction = self.snake_body_lines[-1].direction  # Направление предыдущего объекта - направление предыдущей Линии
         for line_i_from_head_center in range(next_line_i_from_head_center,
                                              next_line_i_from_head_center +
                                              cells_quantity_inFCcs *
@@ -150,12 +144,19 @@ class Snake(pygame.sprite.Group):
             self.snake_body_lines.append(new_line)
             # self.add(new_line)
     
+    def move(self):
+        self.snake_head.move()
+        for line in self.snake_body_lines[::-1]:
+            line.move()
+        self.move_body_bends()
+    
     # Обновление поворотов Тела Змеи
-    def update_body_bends(self):
+    def move_body_bends(self):
         self.body_bends = []   # Очистить список поворотов
         for line1, line2 in zip(self.snake_body_lines[:-1],     # Перебрать Линии
                                 self.snake_body_lines[1:]):      # попарно
             # если направления отличаются и 
+            print(line1.direction, line2.direction)
             if line1.direction.name != line2.direction.name:
                 self.body_bends.append(BodyBend(self, line2))
         # self.add(*self.body_bends)
@@ -193,10 +194,11 @@ class SnakeHead(pygame.sprite.Sprite):
         # Изображение Головы
         self.image = self.create_image(head_parameters)
         # Координаты ячейки со сдвигом на половину ячейки
-        self.rect = self.calc_rect()
+        self.rect = self.calc_rect_on_init()
         # @properties
-            # self.head_center_line_rect_xy
-            # 
+            # self.field_size_inFPcs
+            # self.head_center_line_rect_Points
+            # self.cell_length
     
     @property
     def field_size_inFPcs(self):
@@ -207,12 +209,18 @@ class SnakeHead(pygame.sprite.Sprite):
         return self.snake.cell_length
     
     @property
-    def head_center_line_rect_xy(self):
+    def head_center_line_rect_Points(self):
         line_rect_by_direction = self.snake.body_parts_images[
             self.direction.name].get_rect()
-        return constants.Point(line_rect_by_direction.topleft) + \
-            self.direction.axis.direction_increase.factors * \
-                self.cell_length // 2
+        line_rect_Points = [self.head_coords_inFPcs +
+                            constants.Point(line_rect_by_direction.topleft) +
+                            self.direction.axis.direction_increase.factors *
+                            self.cell_length // 2,
+                            self.head_coords_inFPcs +
+                            constants.Point(line_rect_by_direction.size) +
+                            self.direction.axis.direction_increase.factors *
+                            self.cell_length // 2]
+        return line_rect_Points
     
     # 1.
     # Инициализация объекта
@@ -253,7 +261,7 @@ class SnakeHead(pygame.sprite.Sprite):
         usefull_functions.set_colorkey(image)
         return image
     
-    def calc_rect(self):
+    def calc_rect_on_init(self):
         rect = self.image.get_rect()
         rect.topleft = self.head_coords_inFPcs.xy
         return rect
@@ -263,7 +271,7 @@ class SnakeHead(pygame.sprite.Sprite):
     # Обновление (движение) через обработчик событий Змеи
     # from Field.update() -> Snake.update()
     def update(self):
-        self.rect = self.calc_rect()
+        self.rect = self.calc_rect_on_init()
         
     # Двигает координаты головы без сдвига на половину ячейки
     # from GamePlay.event_handler()
@@ -275,7 +283,7 @@ class SnakeHead(pygame.sprite.Sprite):
         # Определить возможное положение данного шага
         # Определяем длину данного Шага
         current_step = 1
-        # Определить возможное положение данного шага
+        # Определить возможное положение после данного шага
         possible_head_coords_inFPcs = self.head_coords_inFPcs + \
             self.direction.factors * current_step
         # Если направление Змеи изменилось
@@ -306,7 +314,7 @@ class BodyLine(pygame.sprite.Sprite):
         self.line_i_from_head_center = line_i_from_head_center
         self.direction = previous_direction.copy()
         self.image = self.snake.body_parts_images[self.direction.name]
-        self.rect = self.calc_rect()
+        self.rect = self.calc_rect_on_init()
 
     @property
     def head_coords_inFPcs(self):
@@ -317,34 +325,36 @@ class BodyLine(pygame.sprite.Sprite):
         return self.snake.snake_head.direction.copy()
     
     @property
-    def head_center_line_rect_xy(self):
-        return self.snake.snake_head.head_center_line_rect_xy
+    def head_center_line_rect_Points(self):
+        return self.snake.snake_head.head_center_line_rect_Points
 
-    def calc_rect(self):
+    def calc_rect_on_init(self):
         rect = self.image.get_rect()
-        print(self.line_i_from_head_center)
-        print(rect)
-        rect.x, rect.y = (self.head_coords_inFPcs +
-                          self.direction.reverse.factors *
-                          self.line_i_from_head_center).xy
-        print(rect)
-        print()
+        if self.line_i_from_head_center == 0:
+            rect.x, rect.y = (self.head_center_line_rect_Points[0] +
+                              self.direction.reverse.factors *
+                              self.line_i_from_head_center).xy
+        else:
+            rect.x, rect.y = (constants.Point(self.snake.snake_body_lines[
+                self.line_i_from_head_center - 1].rect.topleft) +
+                              self.direction.reverse.factors).xy
         return rect
     
     def set_parameters(self, **parameters):
+        print(parameters.get('direction').name)
         self.direction = parameters.get('direction', self.direction)
         self.image = parameters.get('image', self.image)
         self.rect = parameters.get('rect', self.rect)
     
     # from Field.update() -> Snake.update()
-    def update(self):
+    def move(self):
         # Если это первая Линия
         if self.line_i_from_head_center == 0:
             new_line_image = self.snake.body_parts_images[
                 self.head_direction.name]
             new_line_rect = new_line_image.get_rect()
-            new_line_rect.x, new_line_rect.y = self.head_center_line_rect_xy.xy
-            new_line_direction = self.direction.copy()
+            new_line_rect.x, new_line_rect.y = self.head_center_line_rect_Points[0].xy
+            new_line_direction = self.head_direction.copy()
         else:
             previous_line = self.snake.snake_body_lines[
                 self.line_i_from_head_center - 1]

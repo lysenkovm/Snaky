@@ -18,10 +18,6 @@ MENU_BACKGROUND_IMAGE_PATH = IMAGES_FOLDER / r'menu_background.jpg'
 # COORDINATES
 DIRS_NAMES = LEFT, RIGHT, UP, DOWN = ("left", "right", "up", "down")
 AXES_NAMES = HORIZONTAL, VERTICAL = ('horizontal', 'vertical')
-DIRS_SIDES = (((0, 0), (0, 1)),     # направления в сторону стен
-              ((1, 0), (1, 1)),
-              ((0, 0), (1, 0)),
-              ((0, 1), (1, 1)))
 
 # СЛОВАРИ НАПРАВЛЕНИЙ
 
@@ -66,6 +62,8 @@ SCORE_PERCENT_OF_RESOLUTION = 20
 SCORE_FILL_COLOUR = 'yellow'
 # Field
 
+# Collides
+SNAKE_CRASH_EVENT = pygame.USEREVENT + 4
 
 
 # SNAKE
@@ -73,20 +71,20 @@ SNAKE_START_INDENT_FOR_MOVING = 3
 # Head
 SNAKE_HEAD_FILL_COLOUR = 'red'
 # Body
-BODY_PARAMETERS = {'length_inFCcs': 10,
+BODY_PARAMETERS = {'length_inFCcs': 3,
                    'body_thickness_percent': 60,
                    'colour': 'orange'}
 # Moving
-SNAKE_SPEED_MIN = 30
+SNAKE_SPEED_MIN = 60
 SNAKE_MOVE_EVENT = pygame.USEREVENT + 1
 
 
 # FOOD
 FOOD_SPRITES_PARAMETERS = {'filepath': FOOD_FOLDER / 'food-drink-00.png',
-                           'piece_length': 72}
-FOOD_APPER_SECONDS = 4
-
-# EVENTS
+                           'piece_length': 72, 'size_inFCcs': (3, 3)}
+FOOD_APPEAR_SECONDS = 5
+FOOD_DISAPPEAR_SECONDS = 15
+# Events
 FOOD_PIECE_NEED_EVENT = pygame.USEREVENT + 2
 FOOD_PIECE_EATEN_EVENT = pygame.USEREVENT + 3
 
@@ -286,6 +284,11 @@ class Direction:
     DIRS_POINTS_TO_FACTORS = {(xy1, xy2): (xy2[0] - xy1[0], xy2[1] - xy1[1])
                               for xy1, xy2 in DIRS_POINTS}
     DIRS_FACTORS_TO_POINTS = usefull_functions.reverse_dict(DIRS_POINTS_TO_FACTORS)
+    DIRS_SIDES = (((0, 0), (0, 1)),
+                  ((1, 0), (1, 1)),
+                  ((0, 0), (1, 0)),
+                  ((0, 1), (1, 1)))
+    DIRS_NAMES_SIDES = dict(zip(DIRS_NAMES, DIRS_SIDES))
     
     # direction_source - list or tuple of 2 int or Point
     def __init__(self, direction_source):
@@ -312,6 +315,10 @@ class Direction:
     @property
     def key(self):
         return DIRS_KEYS[self._name]
+
+    @property
+    def side_factors(self):
+        return tuple(Point(xy) for xy in self.DIRS_NAMES_SIDES[self._name])
 
     @property
     def reverse(self):

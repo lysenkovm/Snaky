@@ -7,7 +7,7 @@ from gameplay_modules import gameplay
 #test<
 import sys
 file = open('./debugging.txt', 'wt')
-# sys.stdout = file
+sys.stdout = file
 # def tracefunc(frame, event, arg, indent=[0]):
 #     if event == "call":
 #         indent[0] += 2
@@ -51,6 +51,7 @@ class GameApp:
                     break
                 else:
                     self.current_process.event_handler(event)
+            self.screen.fill('black')
             self.current_process.draw()
             self.clock.tick(constants.FPS)
             pygame.display.flip()
@@ -138,7 +139,7 @@ class Menu(pygame.sprite.Group):
         self.focus_colour = focus_parameters['focus_colour']
         self.buttons_indent_percent = constants.BUTTONS_INDENT_PERCENT
         # @properties
-        # buttons_group_y
+            # buttons_group_y
     
     @property
     def buttons_group_y(self):
@@ -161,7 +162,7 @@ class Menu(pygame.sprite.Group):
     
     def draw(self, surface):
         # Обновляет спрайты (кнопки)
-        self.update()   # from super-class.update()
+        super().update()   # from super-class.update()
         for button in self.sprites():
             if button.status['focused']:
                 focus_wh = button.size.copy()   # Point

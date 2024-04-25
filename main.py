@@ -9,7 +9,7 @@ import sys
 file = open('./debugging.txt', 'wt')
 sys.stdout = file
 # def tracefunc(frame, event, arg, indent=[0]):
-#     if event == "call":
+#     if event == "call":   
 #         indent[0] += 2
 #         print("-" * indent[0] + "> call function", frame.f_code.co_name)
 #     elif event == "return":

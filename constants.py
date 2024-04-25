@@ -57,27 +57,40 @@ BUTTON_SOUNDS_PARAMETERS = {'click_filepath': SOUNDS_FOLDER /
 BUTTONS_INDENT_PERCENT = 50
 
 # GAMEPLAY
+# Events
+GAME_CONTINUE_AFTER_LIFE_LOSS_EVENT = pygame.USEREVENT + 5
+
 # Score interface
 SCORE_PERCENT_OF_RESOLUTION = 20
-SCORE_FILL_COLOUR = 'yellow'
+SCORE_FILL_COLOUR = '#ffe766'
+SCORE_START_PARAMETERS = {'speed': 1,
+                          'level': 1,
+                          'lifes': 3,
+                          'score_value': 0,
+                          'indent_pixels': 3}
+# font
+SCORE_FONT_PARAMETERS = {'filepath': FONTS_FOLDER / r'led_display-7.ttf',
+                          'size': 40,
+                          'colour': 'red'}
+SCORE_LABELS_NAMES = ('ЖИЗНИ: ', 'ОЧКИ:', 'УРОВЕНЬ: ', 'СКОРОСТЬ: ')
+SCORE_LABEL_VERTICAL_NAME_VALUE_INDENT = 2
 # Field
 
 # Collides
 SNAKE_CRASH_EVENT = pygame.USEREVENT + 4
 
-
 # SNAKE
+SNAKE_PARAMETERS = {'length_inFCcs': 3}
 SNAKE_START_INDENT_FOR_MOVING = 3
 # Head
 SNAKE_HEAD_FILL_COLOUR = 'red'
 # Body
-BODY_PARAMETERS = {'length_inFCcs': 3,
-                   'body_thickness_percent': 60,
+BODY_PARAMETERS = {'body_thickness_percent': 60,
                    'colour': 'orange'}
 # Moving
-SNAKE_SPEED_MIN = 60
+SNAKE_SPEED = 60
+SPEED_UP_EVENT = pygame.USEREVENT + 6
 SNAKE_MOVE_EVENT = pygame.USEREVENT + 1
-
 
 # FOOD
 FOOD_SPRITES_PARAMETERS = {'filepath': FOOD_FOLDER / 'food-drink-00.png',
@@ -87,6 +100,7 @@ FOOD_DISAPPEAR_SECONDS = 15
 # Events
 FOOD_PIECE_NEED_EVENT = pygame.USEREVENT + 2
 FOOD_PIECE_EATEN_EVENT = pygame.USEREVENT + 3
+FOOD_PIECE_SCORE = 50
 
 
 # Получить координаты ячейки

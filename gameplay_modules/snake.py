@@ -21,7 +21,7 @@ import usefull_functions
 class Snake(pygame.sprite.Group):
     def __init__(self,
                  field,
-                 snake_parameters={},
+                 snake_parameters=constants.SNAKE_PARAMETERS,
                  head_parameters={},
                  body_parameters=constants.BODY_PARAMETERS,
                  tail_parameters={}):
@@ -31,12 +31,12 @@ class Snake(pygame.sprite.Group):
         # self.direction = constants.UP
         # SNAKE_PARAMETERS:
             # 'speed'
-        self.speed = snake_parameters.get('speed', constants.SNAKE_SPEED_MIN)
+        self.speed = snake_parameters.get('speed', constants.SNAKE_SPEED)
         # BODY_PARAMETERS:
             # 'length_inFCcs'
             # 'snake_thickness_percent'
             # 'colour'
-        self.length_inFCcs = body_parameters.get('length_inFCcs')
+        self.length_inFCcs = 0
         self.body_thickness_percent = body_parameters.get(
             'body_thickness_percent')
         self.body_colour = body_parameters.get('colour')
@@ -44,13 +44,14 @@ class Snake(pygame.sprite.Group):
         # self.body_parts_images: 'on_bend', LEFT, RIGHT, UP, DOWN
         self.body_parts_images = self.create_body_parts_images()
         # СОЗДАНИЕ ГОЛОВЫ (длина Змеи должна быть уже задана)
-        self.snake_head = SnakeHead(self, head_parameters)
+        self.snake_head = SnakeHead(self, snake_parameters, head_parameters)
         # СОЗДАНИЕ ТЕЛА
         self.snake_body_lines = []
-        self.growing_body(self.length_inFCcs)
+        self.growing_body(snake_parameters.get('length_inFCcs'))
         self.body_bends = []
         # Скорость движения Змеи не должна зависеть от скорости прорисовки Змеи
-        pygame.time.set_timer(constants.SNAKE_MOVE_EVENT, 1000 // self.speed)
+        self.is_moving = False
+        self.switch_moving(True)
         # self.add(*self.body_bends, self.snake_head)  # Потом добавить ячейки тела и хвост
         # @properties
             # body_thickness
@@ -77,6 +78,14 @@ class Snake(pygame.sprite.Group):
     @property
     def cell_length(self):
         return self.field.cell_length
+    
+    @property
+    def game_play(self):
+        return self.field.game_play
+    
+    @property
+    def score_interface(self):
+        return self.game_play.score_interface
     
     # from Field.update()
     def update(self):
@@ -125,7 +134,8 @@ class Snake(pygame.sprite.Group):
         return body_parts_images
     
     # СОЗДАНИЕ ТЕЛА ЗМЕИ
-    def growing_body(self, cells_quantity_inFCcs=1):
+    def growing_body(self, cells_quantity_inFCcs=2):
+        self.length_inFCcs += cells_quantity_inFCcs
         # Определить координаты центральной линии (на направлению)
         # Линии создаются в порядке возрастания отдаления от Головы
         if not self.snake_body_lines:           # Если список Линий пуст,
@@ -144,6 +154,11 @@ class Snake(pygame.sprite.Group):
             self.snake_body_lines.append(new_line)
             # self.add(new_line)
     
+    def switch_moving(self, state):
+        pygame.time.set_timer(constants.SNAKE_MOVE_EVENT,
+                              int(state) * 1000 // self.speed)
+        self.is_moving = state
+    
     def move(self):
         self.snake_head.move()
         for line in self.snake_body_lines[::-1]:
@@ -156,7 +171,6 @@ class Snake(pygame.sprite.Group):
         for line1, line2 in zip(self.snake_body_lines[:-1],     # Перебрать Линии
                                 self.snake_body_lines[1:]):      # попарно
             # если направления отличаются и 
-            print(line1.direction, line2.direction)
             if line1.direction.name != line2.direction.name:
                 self.body_bends.append(BodyBend(self, line2))
         # self.add(*self.body_bends)
@@ -164,15 +178,18 @@ class Snake(pygame.sprite.Group):
     def change_direction(self, new_direction):
         self.direction = new_direction.copy()
     
-    # Eating
-    def change_parameters_on_eating(self, speed_growth_percents,
-                                    body_growth_inFCcs):
-        self.speed += 1
-        self.growing_body(body_growth_inFCcs)
+    def increase_speed(self, value=1):
+        self.speed += constants.SNAKE_SPEED
+        self.switch_moving(True)
     
     def event_handler(self, event):
         if event.type == constants.FOOD_PIECE_EATEN_EVENT:
             self.growing_body()
+        elif event.type == constants.SNAKE_CRASH_EVENT:
+            # if self.score_interface.lifes
+            self.switch_moving(False)
+        elif event.type == constants.SPEED_UP_EVENT:
+            self.increase_speed()
     
 
 class SnakeHead(pygame.sprite.Sprite):
@@ -182,13 +199,14 @@ class SnakeHead(pygame.sprite.Sprite):
          # 'filename' (if 'form' == 'image')
         # 'fill' = 'colour'/'image'
          # 'fill_colour' (if 'fill' == 'colour')
-    def __init__(self, snake, head_parameters={}):
+    def __init__(self, snake, snake_parameters={}, head_parameters={}):
         super().__init__()
         self.snake = snake
         self.direction = self.snake.direction.copy()
         # Координаты ячейки без сдвига
         self.head_coords_inFCcs = head_parameters.get(
-            'head_coords_inFCcs', self.calc_head_coords_inFCcs())
+            'head_coords_inFCcs', self.calc_head_coords_inFCcs(
+                snake_parameters.get('length_inFCcs')))
         self.head_coords_inFPcs = self.head_coords_inFCcs.to_FPcs(
             self.cell_length)
         # Изображение Головы
@@ -224,14 +242,14 @@ class SnakeHead(pygame.sprite.Sprite):
     
     # 1.
     # Инициализация объекта
-    def calc_head_coords_inFCcs(self):
+    def calc_head_coords_inFCcs(self, snake_length_inFCcs):
         
         def calc_rect_Points_inFCcs():
             rect_Points = [constants.Point(0, 0),
                            self.field_size_inFPcs.to_FCcs(
                                self.cell_length).copy()]
             body_length_indent_Point = self.direction.reverse.factors * \
-                self.snake.length_inFCcs
+                snake_length_inFCcs
             indent_Point = self.direction.factors * \
                 constants.SNAKE_START_INDENT_FOR_MOVING
             if self.direction.is_increasing():
@@ -341,7 +359,6 @@ class BodyLine(pygame.sprite.Sprite):
         return rect
     
     def set_parameters(self, **parameters):
-        print(parameters.get('direction').name)
         self.direction = parameters.get('direction', self.direction)
         self.image = parameters.get('image', self.image)
         self.rect = parameters.get('rect', self.rect)

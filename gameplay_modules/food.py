@@ -16,9 +16,13 @@ class Food(pygame.sprite.Group):
         self.food_pieces = []
         self.set_food_appearing_timer()
 
+    @property
+    def score_interface(self):
+        return self.field.game_play.surface_parts['score']
+    
     # Загрузка изображений Еды
     def load_food_images(self):
-        image = pygame.image.load(self.path)
+        image = pygame.image.load(self.path).convert()
         food_images = []
         for column_i in range(image.get_width() // self.piece_length):
             for row_i in range(image.get_height() // self.piece_length - 5):
@@ -40,15 +44,20 @@ class Food(pygame.sprite.Group):
           self, millis=1000 * constants.FOOD_DISAPPEAR_SECONDS, loops=1):
         pygame.time.set_timer(constants.FOOD_PIECE_NEED_EVENT, millis, loops)
         
-    def set_food_appearing_timer(self, loops=1):
-        pygame.time.set_timer(constants.FOOD_PIECE_NEED_EVENT,
-                              1000 * constants.FOOD_APPEAR_SECONDS, loops)
+    def set_food_appearing_timer(
+          self, millis=1000 * constants.FOOD_APPEAR_SECONDS, loops=1):
+        pygame.time.set_timer(constants.FOOD_PIECE_NEED_EVENT, millis, loops)
     
     def event_handler(self, event):
         if event.type == constants.FOOD_PIECE_NEED_EVENT:
             self.food_update()
         elif event.type == constants.FOOD_PIECE_EATEN_EVENT:
             self.set_food_disappearing_timer(millis=0)
+            self.set_food_appearing_timer()
+        elif event.type == constants.SNAKE_CRASH_EVENT:
+            self.set_food_disappearing_timer(millis=0)
+            self.set_food_appearing_timer(millis=0)
+        elif event.type == constants.GAME_CONTINUE_AFTER_LIFE_LOSS_EVENT:
             self.set_food_appearing_timer()
 
 
@@ -60,8 +69,6 @@ class FoodPiece(pygame.sprite.Sprite):
             parameters.get('size_inFCcs', self.food.piece_size_inFCcs),
             parameters.get('filename', 'random'))
         self.rect = self.calc_rect()
-    
-    
     
     @property
     def cell_length(self):
